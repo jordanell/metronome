@@ -132,6 +132,42 @@ jobs:
           path: tmp/screenshots
           destination: screenshots
 
+  deploy:
+    docker:
+      - image: cimg/aws:2026.07.1
+    environment:
+      # Replace these values with the EcsClusterName and EcsServiceName
+      # CloudFormation outputs after the stack has been deployed.
+      ECS_CLUSTER: TODO_REPLACE_AFTER_STACK_DEPLOYMENT
+      ECS_SERVICE: TODO_REPLACE_AFTER_STACK_DEPLOYMENT
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Verify ECS deployment configuration
+          command: |
+            if [ "${ECS_CLUSTER}" = "TODO_REPLACE_AFTER_STACK_DEPLOYMENT" ] || \
+               [ "${ECS_SERVICE}" = "TODO_REPLACE_AFTER_STACK_DEPLOYMENT" ]; then
+              echo "Set ECS_CLUSTER and ECS_SERVICE from the CloudFormation stack outputs."
+              exit 1
+            fi
+      - run:
+          name: Build and push image to ECR
+          command: make push
+      - run:
+          name: Restart ECS tasks with the new image
+          command: |
+            aws ecs update-service \
+              --region ca-central-1 \
+              --cluster "${ECS_CLUSTER}" \
+              --service "${ECS_SERVICE}" \
+              --force-new-deployment
+
+            aws ecs wait services-stable \
+              --region ca-central-1 \
+              --cluster "${ECS_CLUSTER}" \
+              --services "${ECS_SERVICE}"
+
 workflows:
   build_and_test:
     jobs:
@@ -140,3 +176,13 @@ workflows:
       - lint
       - test
       - system_test
+      - deploy:
+          requires:
+            - scan_ruby
+            - scan_javascript
+            - lint
+            - test
+            - system_test
+          filters:
+            branches:
+              only: main
