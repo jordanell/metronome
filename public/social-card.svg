@@ -1,0 +1,17 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#0E0E10"/>
+  <circle cx="130" cy="62" r="330" fill="#6F4DFF" fill-opacity="0.2"/>
+  <circle cx="1110" cy="600" r="300" fill="#E9FF70" fill-opacity="0.09"/>
+  <rect x="72" y="64" width="1056" height="502" rx="42" fill="#1A191C" stroke="white" stroke-opacity="0.1" stroke-width="2"/>
+  <g transform="translate(125 145) scale(.58)">
+    <path d="M199 105H313L361 407H151L199 105Z" fill="#29282D" stroke="#F7F4ED" stroke-width="22" stroke-linejoin="round"/>
+    <path d="M256 147V315" stroke="#E9FF70" stroke-width="22" stroke-linecap="round"/>
+    <circle cx="256" cy="325" r="32" fill="#E9FF70"/>
+    <path d="M126 407H386" stroke="#F7F4ED" stroke-width="24" stroke-linecap="round"/>
+  </g>
+  <text x="470" y="205" fill="#E9FF70" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" letter-spacing="5">KEEP THE PULSE</text>
+  <text x="466" y="315" fill="#F7F4ED" font-family="Arial, Helvetica, sans-serif" font-size="88" font-weight="800" letter-spacing="-4">Metronome</text>
+  <text x="470" y="378" fill="#AAA69D" font-family="Arial, Helvetica, sans-serif" font-size="30">Free online tempo and practice tool</text>
+  <rect x="470" y="426" width="345" height="66" rx="33" fill="#E9FF70"/>
+  <text x="510" y="470" fill="#191A0E" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700">40–240 BPM · Any beat</text>
+</svg>

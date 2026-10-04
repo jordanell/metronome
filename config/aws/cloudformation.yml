@@ -1,0 +1,622 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  A small production environment for Metronome using ECS Fargate, Amazon RDS
+  for PostgreSQL, an Application Load Balancer, and Amazon ECR. Create the
+  stack with DesiredCount set to 0, push an image to the repository output,
+  configure DNS to target the load balancer, then update the stack with
+  DesiredCount set to 1.
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Application
+        Parameters:
+          - EnvironmentName
+          - DomainName
+          - CertificateArn
+          - RailsMasterKey
+          - ImageTag
+          - DesiredCount
+      - Label:
+          default: Database
+        Parameters:
+          - DatabaseInstanceClass
+    ParameterLabels:
+      CertificateArn:
+        default: ACM certificate ARN
+      DatabaseInstanceClass:
+        default: RDS instance class
+      DesiredCount:
+        default: ECS desired task count
+      DomainName:
+        default: Application domain
+      EnvironmentName:
+        default: Environment name
+      ImageTag:
+        default: Container image tag
+      RailsMasterKey:
+        default: Rails master key
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: metronome
+    Description: Lowercase name used to identify resources created by this stack.
+    AllowedPattern: "^[a-z][a-z0-9-]{1,30}[a-z0-9]$"
+    ConstraintDescription: Must be 3-32 lowercase letters, numbers, or hyphens.
+
+  DomainName:
+    Type: String
+    Description: >-
+      Fully qualified domain name for the application. Configure its DNS record
+      outside this stack to target the LoadBalancerDnsName output.
+    AllowedPattern: "^(?=.{1,253}$)([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,63}$"
+    ConstraintDescription: Must be a fully qualified domain name without a scheme or path.
+
+  CertificateArn:
+    Type: String
+    Description: >-
+      ARN of an issued ACM certificate in this AWS account and Region that
+      covers DomainName.
+    AllowedPattern: "^arn:(aws|aws-us-gov|aws-cn):acm:[a-z0-9-]+:[0-9]{12}:certificate/[0-9a-fA-F-]+$"
+    ConstraintDescription: Must be a valid ACM certificate ARN.
+
+  RailsMasterKey:
+    Type: String
+    NoEcho: true
+    MinLength: 32
+    Description: Value used by Rails to decrypt config/credentials.yml.enc.
+
+  ImageTag:
+    Type: String
+    Default: latest
+    Description: Tag of the application image in the ECR repository created by this stack.
+    AllowedPattern: "^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$"
+    ConstraintDescription: Must be a valid Docker image tag.
+
+  DesiredCount:
+    Type: Number
+    Default: 0
+    MinValue: 0
+    MaxValue: 10
+    Description: >-
+      Number of application tasks to run. Leave at 0 until an image has been
+      pushed to ECR and DNS has been configured.
+
+  DatabaseInstanceClass:
+    Type: String
+    Default: db.t4g.micro
+    Description: RDS instance class for the PostgreSQL database.
+    AllowedPattern: "^db\\.[a-z0-9]+\\.[a-z0-9]+$"
+    ConstraintDescription: Must be a valid RDS instance class, such as db.t4g.micro.
+
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: ${EnvironmentName}-vpc
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: ${EnvironmentName}-internet-gateway
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId:
+        Ref: InternetGateway
+      VpcId:
+        Ref: Vpc
+
+  PublicSubnetOne:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: ""
+      CidrBlock: 10.0.0.0/24
+      MapPublicIpOnLaunch: true
+      VpcId:
+        Ref: Vpc
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: ${EnvironmentName}-public-1
+
+  PublicSubnetTwo:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+          - 1
+          - Fn::GetAZs: ""
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      VpcId:
+        Ref: Vpc
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: ${EnvironmentName}-public-2
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: Vpc
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: ${EnvironmentName}-public
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: InternetGateway
+      RouteTableId:
+        Ref: PublicRouteTable
+
+  PublicSubnetOneRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: PublicRouteTable
+      SubnetId:
+        Ref: PublicSubnetOne
+
+  PublicSubnetTwoRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: PublicRouteTable
+      SubnetId:
+        Ref: PublicSubnetTwo
+
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow public HTTP and HTTPS traffic to the load balancer.
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          FromPort: 80
+          IpProtocol: tcp
+          ToPort: 80
+        - CidrIp: 0.0.0.0/0
+          FromPort: 443
+          IpProtocol: tcp
+          ToPort: 443
+      VpcId:
+        Ref: Vpc
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: ${EnvironmentName}-load-balancer
+
+  ApplicationSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow application traffic only from the load balancer.
+      VpcId:
+        Ref: Vpc
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: ${EnvironmentName}-application
+
+  ApplicationIngressFromLoadBalancer:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      FromPort: 80
+      GroupId:
+        Ref: ApplicationSecurityGroup
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        Ref: LoadBalancerSecurityGroup
+      ToPort: 80
+
+  DatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow PostgreSQL traffic only from the application tasks.
+      VpcId:
+        Ref: Vpc
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: ${EnvironmentName}-database
+
+  DatabaseIngressFromApplication:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      FromPort: 5432
+      GroupId:
+        Ref: DatabaseSecurityGroup
+      IpProtocol: tcp
+      SourceSecurityGroupId:
+        Ref: ApplicationSecurityGroup
+      ToPort: 5432
+
+  ApplicationRepository:
+    Type: AWS::ECR::Repository
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      LifecyclePolicy:
+        LifecyclePolicyText: >-
+          {"rules":[{"rulePriority":1,"description":"Keep the 20 most recent images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":20},"action":{"type":"expire"}}]}
+      RepositoryName:
+        Fn::Sub: ${EnvironmentName}-app
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: ${EnvironmentName}-app
+
+  RailsMasterKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description:
+        Fn::Sub: Rails master key for ${EnvironmentName}.
+      SecretString:
+        Ref: RailsMasterKey
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: ${EnvironmentName}-rails-master-key
+
+  DatabaseCredentialsSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description:
+        Fn::Sub: PostgreSQL credentials for ${EnvironmentName}.
+      GenerateSecretString:
+        ExcludePunctuation: true
+        GenerateStringKey: password
+        PasswordLength: 32
+        SecretStringTemplate: '{"username":"metronome"}'
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: ${EnvironmentName}-database-credentials
+
+  DatabaseSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription:
+        Fn::Sub: Subnets for the ${EnvironmentName} PostgreSQL database.
+      SubnetIds:
+        - Ref: PublicSubnetOne
+        - Ref: PublicSubnetTwo
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: ${EnvironmentName}-database
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      AllocatedStorage: 20
+      AutoMinorVersionUpgrade: true
+      BackupRetentionPeriod: 7
+      CopyTagsToSnapshot: true
+      DBInstanceClass:
+        Ref: DatabaseInstanceClass
+      DBName: metronome_production
+      DBSubnetGroupName:
+        Ref: DatabaseSubnetGroup
+      Engine: postgres
+      MasterUsername:
+        Fn::Sub: "{{resolve:secretsmanager:${DatabaseCredentialsSecret}:SecretString:username}}"
+      MasterUserPassword:
+        Fn::Sub: "{{resolve:secretsmanager:${DatabaseCredentialsSecret}:SecretString:password}}"
+      MaxAllocatedStorage: 100
+      MultiAZ: false
+      Port: 5432
+      PubliclyAccessible: false
+      StorageEncrypted: true
+      VPCSecurityGroups:
+        - Ref: DatabaseSecurityGroup
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: ${EnvironmentName}-database
+
+  ApplicationLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        Fn::Sub: /ecs/${EnvironmentName}
+      RetentionInDays: 14
+
+  EcsCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName:
+        Fn::Sub: ${EnvironmentName}-cluster
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: ${EnvironmentName}-cluster
+
+  TaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: ReadApplicationSecrets
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - Ref: RailsMasterKeySecret
+                  - Ref: DatabaseCredentialsSecret
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: ${EnvironmentName}-task-execution
+
+  ApplicationTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: ${EnvironmentName}-application-task
+
+  ApplicationTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Cpu: "512"
+      ExecutionRoleArn:
+        Fn::GetAtt:
+          - TaskExecutionRole
+          - Arn
+      Family:
+        Fn::Sub: ${EnvironmentName}-application
+      Memory: "1024"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      RuntimePlatform:
+        CpuArchitecture: X86_64
+        OperatingSystemFamily: LINUX
+      TaskRoleArn:
+        Fn::GetAtt:
+          - ApplicationTaskRole
+          - Arn
+      ContainerDefinitions:
+        - Name: application
+          Essential: true
+          Image:
+            Fn::Sub: ${ApplicationRepository.RepositoryUri}:${ImageTag}
+          PortMappings:
+            - ContainerPort: 80
+              Protocol: tcp
+          Environment:
+            - Name: DB_HOST
+              Value:
+                Fn::GetAtt:
+                  - Database
+                  - Endpoint.Address
+            - Name: DB_PORT
+              Value:
+                Fn::GetAtt:
+                  - Database
+                  - Endpoint.Port
+            - Name: DB_USERNAME
+              Value: metronome
+            - Name: RAILS_MAX_THREADS
+              Value: "3"
+            - Name: SITE_URL
+              Value:
+                Fn::Sub: https://${DomainName}
+            - Name: SOLID_QUEUE_IN_PUMA
+              Value: "true"
+          Secrets:
+            - Name: RAILS_MASTER_KEY
+              ValueFrom:
+                Ref: RailsMasterKeySecret
+            - Name: POSTGRES_PASSWORD
+              ValueFrom:
+                Fn::Sub: "${DatabaseCredentialsSecret}:password::"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group:
+                Ref: ApplicationLogGroup
+              awslogs-region:
+                Ref: AWS::Region
+              awslogs-stream-prefix: application
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: ${EnvironmentName}-application
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: internet-facing
+      SecurityGroups:
+        - Ref: LoadBalancerSecurityGroup
+      Subnets:
+        - Ref: PublicSubnetOne
+        - Ref: PublicSubnetTwo
+      Type: application
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: ${EnvironmentName}-load-balancer
+
+  ApplicationTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: /up
+      HealthCheckPort: traffic-port
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: "200"
+      Port: 80
+      Protocol: HTTP
+      TargetType: ip
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: "30"
+      UnhealthyThresholdCount: 3
+      VpcId:
+        Ref: Vpc
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: ${EnvironmentName}-application
+
+  HttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: redirect
+          RedirectConfig:
+            Port: "443"
+            Protocol: HTTPS
+            StatusCode: HTTP_301
+      LoadBalancerArn:
+        Ref: LoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  HttpsListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      Certificates:
+        - CertificateArn:
+            Ref: CertificateArn
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn:
+            Ref: ApplicationTargetGroup
+      LoadBalancerArn:
+        Ref: LoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      SslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+
+  ApplicationService:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - HttpsListener
+    Properties:
+      Cluster:
+        Ref: EcsCluster
+      DeploymentConfiguration:
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      DesiredCount:
+        Ref: DesiredCount
+      HealthCheckGracePeriodSeconds: 120
+      LaunchType: FARGATE
+      LoadBalancers:
+        - ContainerName: application
+          ContainerPort: 80
+          TargetGroupArn:
+            Ref: ApplicationTargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - Ref: ApplicationSecurityGroup
+          Subnets:
+            - Ref: PublicSubnetOne
+            - Ref: PublicSubnetTwo
+      PlatformVersion: LATEST
+      PropagateTags: SERVICE
+      ServiceName:
+        Fn::Sub: ${EnvironmentName}-application
+      TaskDefinition:
+        Ref: ApplicationTaskDefinition
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: ${EnvironmentName}-application
+
+Outputs:
+  ApplicationUrl:
+    Description: Public HTTPS URL for the application after DNS is configured.
+    Value:
+      Fn::Sub: https://${DomainName}
+
+  EcrRepositoryUri:
+    Description: Push the application container image to this repository.
+    Value:
+      Fn::GetAtt:
+        - ApplicationRepository
+        - RepositoryUri
+
+  LoadBalancerDnsName:
+    Description: Create an external DNS alias or CNAME for DomainName targeting this value.
+    Value:
+      Fn::GetAtt:
+        - LoadBalancer
+        - DNSName
+
+  EcsClusterName:
+    Description: Name of the ECS cluster running the application.
+    Value:
+      Ref: EcsCluster
+
+  EcsServiceName:
+    Description: Name of the ECS application service.
+    Value:
+      Fn::GetAtt:
+        - ApplicationService
+        - Name

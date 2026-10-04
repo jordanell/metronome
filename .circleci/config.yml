@@ -1,0 +1,142 @@
+version: 2.1
+
+executors:
+  ruby:
+    docker:
+      - image: cimg/ruby:4.0.6
+    environment:
+      BUNDLE_PATH: vendor/bundle
+
+  ruby_with_postgres:
+    docker:
+      - image: cimg/ruby:4.0.6
+        environment:
+          RAILS_ENV: test
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/metronome_test
+      - image: postgres:17
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: metronome_test
+    environment:
+      BUNDLE_PATH: vendor/bundle
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/metronome_test
+
+  ruby_browser_with_postgres:
+    docker:
+      - image: cimg/ruby:4.0.6-browsers
+        environment:
+          RAILS_ENV: test
+          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/metronome_test
+      - image: postgres:17
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: metronome_test
+    environment:
+      BUNDLE_PATH: vendor/bundle
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/metronome_test
+
+commands:
+  install_dependencies:
+    steps:
+      - restore_cache:
+          keys:
+            - bundle-v1-{{ arch }}-{{ checksum ".ruby-version" }}-{{ checksum "Gemfile.lock" }}
+            - bundle-v1-{{ arch }}-{{ checksum ".ruby-version" }}-
+      - run:
+          name: Install gems
+          command: bundle check || bundle install --jobs 4 --retry 3
+      - save_cache:
+          key: bundle-v1-{{ arch }}-{{ checksum ".ruby-version" }}-{{ checksum "Gemfile.lock" }}
+          paths:
+            - vendor/bundle
+
+  install_system_packages:
+    steps:
+      - run:
+          name: Install system packages
+          command: sudo apt-get update && sudo apt-get install --no-install-recommends -y libpq-dev libvips
+
+  wait_for_postgres:
+    steps:
+      - run:
+          name: Wait for PostgreSQL
+          command: dockerize -wait tcp://127.0.0.1:5432 -timeout 60s
+
+jobs:
+  scan_ruby:
+    executor: ruby
+    steps:
+      - checkout
+      - install_dependencies
+      - run:
+          name: Scan Rails code
+          command: bin/brakeman --no-pager
+      - run:
+          name: Audit Ruby gems
+          command: bin/bundler-audit
+
+  scan_javascript:
+    executor: ruby
+    steps:
+      - checkout
+      - install_dependencies
+      - run:
+          name: Audit import-map dependencies
+          command: bin/importmap audit
+
+  lint:
+    executor: ruby
+    environment:
+      RUBOCOP_CACHE_ROOT: tmp/rubocop
+    steps:
+      - checkout
+      - install_dependencies
+      - restore_cache:
+          keys:
+            - rubocop-v1-{{ arch }}-{{ checksum ".ruby-version" }}-{{ checksum ".rubocop.yml" }}
+            - rubocop-v1-{{ arch }}-
+      - run:
+          name: Lint Ruby
+          command: bin/rubocop
+      - save_cache:
+          key: rubocop-v1-{{ arch }}-{{ checksum ".ruby-version" }}-{{ checksum ".rubocop.yml" }}
+          paths:
+            - tmp/rubocop
+
+  test:
+    executor: ruby_with_postgres
+    steps:
+      - checkout
+      - install_system_packages
+      - install_dependencies
+      - wait_for_postgres
+      - run:
+          name: Prepare database and run non-system specs
+          command: bin/rails db:prepare && bundle exec rspec --exclude-pattern "spec/system/**/*_spec.rb"
+
+  system_test:
+    executor: ruby_browser_with_postgres
+    steps:
+      - checkout
+      - install_system_packages
+      - install_dependencies
+      - wait_for_postgres
+      - run:
+          name: Prepare database and run system specs
+          command: bin/rails db:prepare && bundle exec rspec spec/system
+      - store_artifacts:
+          path: tmp/screenshots
+          destination: screenshots
+
+workflows:
+  build_and_test:
+    jobs:
+      - scan_ruby
+      - scan_javascript
+      - lint
+      - test
+      - system_test
