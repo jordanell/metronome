@@ -18,7 +18,17 @@
         <output class="text-[clamp(5.5rem,22vw,10.5rem)] leading-[0.9] font-extrabold tracking-[-0.09em]" data-metronome-target="bpm" aria-label="Current tempo">120</output>
         <span class="mb-[0.8rem] self-end text-xs font-[750] tracking-[0.14em] text-[#aaa69d]">BPM</span>
       </div>
-      <p class="mt-4 text-xs text-[#aaa69d]"><kbd class="mx-[0.12rem] inline-block min-w-[1.6rem] rounded-[5px] border border-white/10 border-b-white/25 bg-[#29282d] px-[0.35rem] py-[0.15rem] text-center font-sans text-[0.7rem] text-[#f7f4ed]">↑</kbd><kbd class="mx-[0.12rem] inline-block min-w-[1.6rem] rounded-[5px] border border-white/10 border-b-white/25 bg-[#29282d] px-[0.35rem] py-[0.15rem] text-center font-sans text-[0.7rem] text-[#f7f4ed]">↓</kbd> adjust by one</p>
+      <p class="mt-4 text-xs text-[#aaa69d]" data-metronome-target="desktopShortcut"><kbd class="mx-[0.12rem] inline-block min-w-[1.6rem] rounded-[5px] border border-white/10 border-b-white/25 bg-[#29282d] px-[0.35rem] py-[0.15rem] text-center font-sans text-[0.7rem] text-[#f7f4ed]">↑</kbd><kbd class="mx-[0.12rem] inline-block min-w-[1.6rem] rounded-[5px] border border-white/10 border-b-white/25 bg-[#29282d] px-[0.35rem] py-[0.15rem] text-center font-sans text-[0.7rem] text-[#f7f4ed]">↓</kbd> adjust by one</p>
+      <div class="mt-4 flex justify-center gap-3" data-metronome-target="mobileTempoControls" hidden>
+        <button type="button"
+                class="grid size-12 cursor-pointer place-items-center rounded-lg border border-white/10 bg-[#2c2b30] text-2xl text-[#f7f4ed] active:translate-y-px focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff]"
+                data-action="metronome#decreaseTempo"
+                aria-label="Decrease tempo by 1 BPM">↓</button>
+        <button type="button"
+                class="grid size-12 cursor-pointer place-items-center rounded-lg border border-white/10 bg-[#2c2b30] text-2xl text-[#f7f4ed] active:translate-y-px focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff]"
+                data-action="metronome#increaseTempo"
+                aria-label="Increase tempo by 1 BPM">↑</button>
+      </div>
     </section>
 
     <section class="grid grid-cols-2 gap-3 max-[390px]:grid-cols-1" aria-label="Timers">
@@ -52,7 +62,7 @@
       <span class="mr-[0.35rem] inline-block w-[1.3rem] text-xs" aria-hidden="true" data-metronome-target="transportIcon">▶</span>
       <span data-metronome-target="toggleLabel">Start</span>
     </button>
-    <p class="mt-4 mb-7 text-center text-xs text-[#aaa69d]">Press <kbd class="mx-[0.12rem] inline-block min-w-[1.6rem] rounded-[5px] border border-white/10 border-b-white/25 bg-[#29282d] px-[0.35rem] py-[0.15rem] text-center font-sans text-[0.7rem] text-[#f7f4ed]">Space</kbd> or <kbd class="mx-[0.12rem] inline-block min-w-[1.6rem] rounded-[5px] border border-white/10 border-b-white/25 bg-[#29282d] px-[0.35rem] py-[0.15rem] text-center font-sans text-[0.7rem] text-[#f7f4ed]">Enter</kbd> to start and stop</p>
+    <p class="mt-4 mb-7 text-center text-xs text-[#aaa69d]" data-metronome-target="desktopShortcut">Press <kbd class="mx-[0.12rem] inline-block min-w-[1.6rem] rounded-[5px] border border-white/10 border-b-white/25 bg-[#29282d] px-[0.35rem] py-[0.15rem] text-center font-sans text-[0.7rem] text-[#f7f4ed]">Space</kbd> or <kbd class="mx-[0.12rem] inline-block min-w-[1.6rem] rounded-[5px] border border-white/10 border-b-white/25 bg-[#29282d] px-[0.35rem] py-[0.15rem] text-center font-sans text-[0.7rem] text-[#f7f4ed]">Enter</kbd> to start and stop</p>
 
     <section class="rounded-2xl border border-white/10 bg-[#222126] p-4" aria-labelledby="quick-tempo-label">
       <div class="mb-[0.9rem] flex items-center justify-between">

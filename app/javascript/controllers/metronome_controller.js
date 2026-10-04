@@ -15,7 +15,8 @@ export default class extends Controller {
   static targets = [
     "bpm", "status", "toggle", "toggleLabel", "transportIcon",
     "sessionTimer", "globalTimer", "quickButton", "numerator",
-    "denominator", "signatureOutput", "volume", "volumeOutput"
+    "denominator", "signatureOutput", "volume", "volumeOutput",
+    "desktopShortcut", "mobileTempoControls"
   ]
 
   connect() {
@@ -39,6 +40,7 @@ export default class extends Controller {
     this.renderSettings()
     this.renderTimers()
     this.renderTransport()
+    this.renderDeviceControls()
   }
 
   disconnect() {
@@ -99,6 +101,14 @@ export default class extends Controller {
 
   selectTempo(event) {
     this.setBpm(Number(event.currentTarget.dataset.bpm))
+  }
+
+  decreaseTempo() {
+    this.setBpm(this.bpm - 1)
+  }
+
+  increaseTempo() {
+    this.setBpm(this.bpm + 1)
   }
 
   changeVolume() {
@@ -176,6 +186,24 @@ export default class extends Controller {
     this.toggleTarget.setAttribute("aria-pressed", this.playing.toString())
     this.toggleLabelTarget.textContent = this.playing ? "Stop" : "Start"
     this.transportIconTarget.textContent = this.playing ? "■" : "▶"
+  }
+
+  renderDeviceControls() {
+    const mobileDevice = this.isMobileDevice()
+
+    this.desktopShortcutTargets.forEach((element) => {
+      element.hidden = mobileDevice
+    })
+    this.mobileTempoControlsTarget.hidden = !mobileDevice
+  }
+
+  isMobileDevice() {
+    if (navigator.userAgentData?.mobile) return true
+
+    const mobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i
+    const iPadOSDesktopMode = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1
+
+    return mobileUserAgent.test(navigator.userAgent) || iPadOSDesktopMode
   }
 
   renderTimers() {

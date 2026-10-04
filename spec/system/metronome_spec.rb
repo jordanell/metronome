@@ -25,6 +25,31 @@ RSpec.describe "Metronome", type: :system do
     expect_bpm("40")
   end
 
+  it "shows tap controls based on the device type rather than viewport width" do
+    page.current_window.resize_to(375, 800)
+
+    expect(page).to have_text("adjust by one")
+    expect(page).to have_text("Press Space or Enter to start and stop")
+    expect(page).to have_no_button("Decrease tempo by 1 BPM")
+    expect(page).to have_no_button("Increase tempo by 1 BPM")
+
+    original_user_agent = page.evaluate_script("navigator.userAgent")
+    page.driver.browser.execute_cdp(
+      "Network.setUserAgentOverride",
+      userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1"
+    )
+    refresh
+
+    expect(page).to have_no_text("adjust by one")
+    expect(page).to have_no_text("Press Space or Enter to start and stop")
+    find("button[aria-label='Increase tempo by 1 BPM']").click
+    expect_bpm("121")
+    find("button[aria-label='Decrease tempo by 1 BPM']").click
+    expect_bpm("120")
+  ensure
+    page.driver.browser.execute_cdp("Network.setUserAgentOverride", userAgent: original_user_agent) if original_user_agent
+  end
+
   it "starts and stops from the keyboard while keeping both timers visible" do
     install_fake_audio_context
 
