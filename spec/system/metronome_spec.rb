@@ -53,6 +53,24 @@ RSpec.describe "Metronome", type: :system do
     expect(timer_text("globalTimer")).to eq(frozen_global)
   end
 
+  it "keeps keyboard controls active when another control has focus" do
+    install_fake_audio_context
+
+    click_button "150"
+    find("button[data-bpm='150']").send_keys(:arrow_up)
+    expect_bpm("151")
+
+    find("button[data-bpm='150']").send_keys(:space)
+    expect_status("Playing")
+
+    select "7", from: "Beats"
+    find("#signature-numerator").send_keys(:arrow_down)
+    expect_bpm("150")
+
+    find("#signature-numerator").send_keys(:enter)
+    expect_status("Stopped")
+  end
+
   it "persists tempo, volume, and time signature" do
     click_button "180"
     select "7", from: "Beats"

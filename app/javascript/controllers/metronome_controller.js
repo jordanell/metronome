@@ -127,8 +127,6 @@ export default class extends Controller {
   }
 
   handleKeydown(event) {
-    if (this.isFormControl(event.target)) return
-
     if (event.key === "ArrowUp" || event.key === "ArrowDown") {
       event.preventDefault()
       this.setBpm(this.bpm + (event.key === "ArrowUp" ? 1 : -1))
@@ -309,10 +307,6 @@ export default class extends Controller {
     } catch (_error) {
       return DEFAULTS
     }
-  }
-
-  isFormControl(element) {
-    return element.isContentEditable || ["INPUT", "SELECT", "TEXTAREA", "BUTTON", "A"].includes(element.tagName)
   }
 
   clamp(value, minimum, maximum) {
