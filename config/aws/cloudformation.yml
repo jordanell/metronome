@@ -1,10 +1,9 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
   A small production environment for Metronome using ECS Fargate, Amazon RDS
-  for PostgreSQL, an Application Load Balancer, and Amazon ECR. Create the
-  stack with DesiredCount set to 0, push an image to the repository output,
-  configure DNS to target the load balancer, then update the stack with
-  DesiredCount set to 1.
+  for PostgreSQL, an Application Load Balancer, Amazon ECR, and Route 53.
+  Create the stack with DesiredCount set to 0, push an image to the repository
+  output, then update the stack with DesiredCount set to 1.
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -14,6 +13,7 @@ Metadata:
         Parameters:
           - EnvironmentName
           - DomainName
+          - HostedZoneId
           - CertificateArn
           - RailsMasterKey
           - ImageTag
@@ -31,6 +31,8 @@ Metadata:
         default: ECS desired task count
       DomainName:
         default: Application domain
+      HostedZoneId:
+        default: Route 53 hosted zone ID
       EnvironmentName:
         default: Environment name
       ImageTag:
@@ -48,11 +50,13 @@ Parameters:
 
   DomainName:
     Type: String
-    Description: >-
-      Fully qualified domain name for the application. Configure its DNS record
-      outside this stack to target the LoadBalancerDnsName output.
+    Description: Fully qualified domain name for the application.
     AllowedPattern: "^(?=.{1,253}$)([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\\.)+[a-zA-Z]{2,63}$"
     ConstraintDescription: Must be a fully qualified domain name without a scheme or path.
+
+  HostedZoneId:
+    Type: AWS::Route53::HostedZone::Id
+    Description: ID of the public Route 53 hosted zone that contains DomainName.
 
   CertificateArn:
     Type: String
@@ -82,7 +86,7 @@ Parameters:
     MaxValue: 10
     Description: >-
       Number of application tasks to run. Leave at 0 until an image has been
-      pushed to ECR and DNS has been configured.
+      pushed to ECR.
 
   DatabaseInstanceClass:
     Type: String
@@ -221,13 +225,13 @@ Resources:
   ApplicationIngressFromLoadBalancer:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
-      FromPort: 80
+      FromPort: 8080
       GroupId:
         Ref: ApplicationSecurityGroup
       IpProtocol: tcp
       SourceSecurityGroupId:
         Ref: LoadBalancerSecurityGroup
-      ToPort: 80
+      ToPort: 8080
 
   DatabaseSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -435,9 +439,11 @@ Resources:
           Image:
             Fn::Sub: ${ApplicationRepository.RepositoryUri}:${ImageTag}
           PortMappings:
-            - ContainerPort: 80
+            - ContainerPort: 8080
               Protocol: tcp
           Environment:
+            - Name: THRUSTER_HTTP_PORT
+              Value: "8080"
             - Name: DB_HOST
               Value:
                 Fn::GetAtt:
@@ -492,6 +498,25 @@ Resources:
           Value:
             Fn::Sub: ${EnvironmentName}-load-balancer
 
+  DomainRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      AliasTarget:
+        DNSName:
+          Fn::GetAtt:
+            - LoadBalancer
+            - DNSName
+        EvaluateTargetHealth: true
+        HostedZoneId:
+          Fn::GetAtt:
+            - LoadBalancer
+            - CanonicalHostedZoneID
+      HostedZoneId:
+        Ref: HostedZoneId
+      Name:
+        Ref: DomainName
+      Type: A
+
   ApplicationTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -504,7 +529,7 @@ Resources:
       HealthyThresholdCount: 2
       Matcher:
         HttpCode: "200"
-      Port: 80
+      Port: 8080
       Protocol: HTTP
       TargetType: ip
       TargetGroupAttributes:
@@ -567,7 +592,7 @@ Resources:
       LaunchType: FARGATE
       LoadBalancers:
         - ContainerName: application
-          ContainerPort: 80
+          ContainerPort: 8080
           TargetGroupArn:
             Ref: ApplicationTargetGroup
       NetworkConfiguration:
