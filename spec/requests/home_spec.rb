@@ -22,7 +22,7 @@ RSpec.describe "Home", type: :request do
       expect(document).to have_css("button[aria-label='Decrease tempo by 1 BPM']", visible: :all)
       expect(document).to have_css("button[aria-label='Increase tempo by 1 BPM']", visible: :all)
       expect(document).to have_css(
-        "button[data-metronome-target='toggle'][aria-pressed='false']",
+        "button.flex.items-center.justify-center[data-metronome-target='toggle'][aria-pressed='false']",
         text: "Start"
       )
     end

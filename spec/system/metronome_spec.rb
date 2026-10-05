@@ -115,13 +115,16 @@ RSpec.describe "Metronome", type: :system do
 
   it "schedules an accented downbeat and ordinary beats" do
     install_fake_audio_context
+    set_volume(100)
     click_button "Start"
 
     expect_status("Playing")
     expect(page.evaluate_script("window.__metronomeFrequencies.includes(1000)")).to be(true)
+    expect(page.evaluate_script("window.__metronomePeakGains.includes(0.9)")).to be(true)
 
     sleep 0.6
     expect(page.evaluate_script("window.__metronomeFrequencies.includes(700)")).to be(true)
+    expect(page.evaluate_script("window.__metronomePeakGains.includes(0.6)")).to be(true)
 
     click_button "Stop"
   end
@@ -166,6 +169,7 @@ RSpec.describe "Metronome", type: :system do
     def install_fake_audio_context
       page.execute_script(<<~JAVASCRIPT)
         window.__metronomeFrequencies = []
+        window.__metronomePeakGains = []
         window.AudioContext = class {
           constructor() {
             this.startedAt = performance.now() / 1000
@@ -192,7 +196,7 @@ RSpec.describe "Metronome", type: :system do
           createGain() {
             return {
               gain: {
-                setValueAtTime() {},
+                setValueAtTime(value) { window.__metronomePeakGains.push(value) },
                 exponentialRampToValueAtTime() {}
               },
               connect() {}

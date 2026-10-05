@@ -3,6 +3,8 @@ import { Controller } from "@hotwired/stimulus"
 const STORAGE_KEY = "metronome.settings.v1"
 const MIN_BPM = 40
 const MAX_BPM = 240
+const ACCENTED_CLICK_GAIN = 0.9
+const REGULAR_CLICK_GAIN = 0.6
 const DEFAULTS = Object.freeze({
   bpm: 120,
   volume: 70,
@@ -253,7 +255,7 @@ export default class extends Controller {
   scheduleClick(accented, time) {
     const oscillator = this.audioContext.createOscillator()
     const gain = this.audioContext.createGain()
-    const peakVolume = (this.volume / 100) * (accented ? 0.24 : 0.16)
+    const peakVolume = (this.volume / 100) * (accented ? ACCENTED_CLICK_GAIN : REGULAR_CLICK_GAIN)
 
     oscillator.frequency.setValueAtTime(accented ? 1000 : 700, time)
     gain.gain.setValueAtTime(Math.max(peakVolume, 0.0001), time)
