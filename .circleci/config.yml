@@ -138,19 +138,11 @@ jobs:
     environment:
       # Replace these values with the EcsClusterName and EcsServiceName
       # CloudFormation outputs after the stack has been deployed.
-      ECS_CLUSTER: TODO_REPLACE_AFTER_STACK_DEPLOYMENT
-      ECS_SERVICE: TODO_REPLACE_AFTER_STACK_DEPLOYMENT
+      ECS_CLUSTER: click-track-prod-cluster
+      ECS_SERVICE: click-track-prod-application
     steps:
       - checkout
       - setup_remote_docker
-      - run:
-          name: Verify ECS deployment configuration
-          command: |
-            if [ "${ECS_CLUSTER}" = "TODO_REPLACE_AFTER_STACK_DEPLOYMENT" ] || \
-               [ "${ECS_SERVICE}" = "TODO_REPLACE_AFTER_STACK_DEPLOYMENT" ]; then
-              echo "Set ECS_CLUSTER and ECS_SERVICE from the CloudFormation stack outputs."
-              exit 1
-            fi
       - run:
           name: Build and push image to ECR
           command: make push
