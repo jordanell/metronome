@@ -33,11 +33,13 @@
 
     <section class="grid grid-cols-2 gap-3 max-[390px]:grid-cols-1" aria-label="Timers">
       <div class="rounded-2xl border border-white/10 bg-[#222126] px-[1.15rem] py-4">
-        <span class="mb-[0.35rem] block text-xs font-bold tracking-[0.08em] text-[#aaa69d] uppercase">Session</span>
+        <div class="mb-[0.35rem] flex min-h-7 items-center">
+          <span class="block text-xs font-bold tracking-[0.08em] text-[#aaa69d] uppercase">Session</span>
+        </div>
         <output class="text-[clamp(1.25rem,5vw,2rem)] font-[650] tracking-[0.04em] tabular-nums" data-metronome-target="sessionTimer" aria-label="Current session elapsed time">00:00:00</output>
       </div>
       <div class="rounded-2xl border border-white/10 bg-[#222126] px-[1.15rem] py-4">
-        <div class="mb-[0.35rem] flex items-center justify-between gap-2">
+        <div class="mb-[0.35rem] flex min-h-7 items-center justify-between gap-2">
           <span class="block text-xs font-bold tracking-[0.08em] text-[#aaa69d] uppercase">Global</span>
           <button type="button"
                   class="grid size-7 cursor-pointer place-items-center rounded-md text-[#aaa69d] transition-colors hover:bg-white/10 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#b9c8ff]"
