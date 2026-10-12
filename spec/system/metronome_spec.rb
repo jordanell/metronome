@@ -78,6 +78,24 @@ RSpec.describe "Metronome", type: :system do
     expect(timer_text("globalTimer")).to eq(frozen_global)
   end
 
+  it "keeps the screen awake while playing and reacquires the lock when visible again" do
+    install_fake_audio_context
+    install_fake_wake_lock
+
+    click_button "Start"
+    expect_status("Playing")
+    expect(page.evaluate_script("window.__wakeLockRequests")).to eq([ "screen" ])
+
+    set_document_visibility("hidden")
+    page.execute_script("window.__wakeLocks[0].release()")
+    set_document_visibility("visible")
+
+    expect(page.evaluate_script("window.__wakeLockRequests")).to eq([ "screen", "screen" ])
+
+    click_button "Stop"
+    expect(page.evaluate_script("window.__wakeLockReleaseCount")).to eq(2)
+  end
+
   it "keeps keyboard controls active when another control has focus" do
     install_fake_audio_context
 
@@ -203,6 +221,47 @@ RSpec.describe "Metronome", type: :system do
             }
           }
         }
+      JAVASCRIPT
+    end
+
+    def install_fake_wake_lock
+      page.execute_script(<<~JAVASCRIPT)
+        window.__wakeLockRequests = []
+        window.__wakeLockReleaseCount = 0
+        window.__wakeLocks = []
+
+        Object.defineProperty(navigator, "wakeLock", {
+          configurable: true,
+          value: {
+            request(type) {
+              window.__wakeLockRequests.push(type)
+
+              const wakeLock = new EventTarget()
+              wakeLock.released = false
+              wakeLock.release = function() {
+                if (!this.released) {
+                  this.released = true
+                  window.__wakeLockReleaseCount += 1
+                  this.dispatchEvent(new Event("release"))
+                }
+                return Promise.resolve()
+              }
+
+              window.__wakeLocks.push(wakeLock)
+              return Promise.resolve(wakeLock)
+            }
+          }
+        })
+      JAVASCRIPT
+    end
+
+    def set_document_visibility(state)
+      page.execute_script(<<~JAVASCRIPT, state)
+        Object.defineProperty(document, "visibilityState", {
+          configurable: true,
+          value: arguments[0]
+        })
+        document.dispatchEvent(new Event("visibilitychange"))
       JAVASCRIPT
     end
 end

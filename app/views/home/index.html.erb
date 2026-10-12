@@ -2,7 +2,7 @@
 
 <main class="group grid min-h-screen place-items-center p-[clamp(1rem,4vw,3rem)] max-[620px]:p-0"
       data-controller="metronome"
-      data-action="keydown@window->metronome#handleKeydown beforeunload@window->metronome#persistBeforeUnload turbo:before-cache@document->metronome#prepareForCache">
+      data-action="keydown@window->metronome#handleKeydown beforeunload@window->metronome#persistBeforeUnload visibilitychange@document->metronome#handleVisibilityChange turbo:before-cache@document->metronome#prepareForCache">
   <section class="w-full max-w-[760px] overflow-hidden rounded-[28px] border border-white/10 bg-[rgba(26,25,28,0.92)] p-[clamp(1.25rem,4vw,2.5rem)] shadow-[0_32px_100px_rgba(0,0,0,0.38)] backdrop-blur-[18px] max-[620px]:min-h-screen max-[620px]:rounded-none max-[620px]:border-0" aria-labelledby="metronome-title">
     <header class="flex items-center justify-between gap-4">
       <div>

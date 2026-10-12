@@ -36,6 +36,8 @@ export default class extends Controller {
     this.schedulerId = null
     this.animationFrameId = null
     this.persistIntervalId = null
+    this.wakeLock = null
+    this.wakeLockRequest = null
     this.scheduledNodes = new Set()
     this.currentBeat = 0
 
@@ -69,6 +71,7 @@ export default class extends Controller {
       await this.audioContext.resume()
 
       this.playing = true
+      this.requestWakeLock()
       this.sessionElapsedMs = 0
       this.sessionStartedAt = performance.now()
       this.globalStartedAt = this.sessionStartedAt
@@ -93,6 +96,7 @@ export default class extends Controller {
     this.sessionElapsedMs = now - this.sessionStartedAt
     this.globalElapsedMs += now - this.globalStartedAt
     this.playing = false
+    this.releaseWakeLock()
     this.clearPlaybackLoops()
     this.cancelScheduledNotes()
     this.audioContext?.suspend()
@@ -157,6 +161,12 @@ export default class extends Controller {
 
   prepareForCache() {
     this.finishPlayback()
+  }
+
+  handleVisibilityChange() {
+    if (this.playing && document.visibilityState === "visible") {
+      this.requestWakeLock()
+    }
   }
 
   setBpm(value) {
@@ -307,9 +317,53 @@ export default class extends Controller {
       this.playing = false
     }
 
+    this.releaseWakeLock()
     this.clearPlaybackLoops()
     this.cancelScheduledNotes()
     this.persistState()
+  }
+
+  async requestWakeLock() {
+    if (!this.playing || document.visibilityState !== "visible") return
+    if (!navigator.wakeLock?.request || this.wakeLock || this.wakeLockRequest) return
+
+    let request
+
+    try {
+      request = navigator.wakeLock.request("screen")
+      this.wakeLockRequest = request
+      const wakeLock = await request
+
+      if (this.wakeLockRequest !== request || !this.playing || document.visibilityState !== "visible") {
+        await wakeLock.release()
+        return
+      }
+
+      this.wakeLock = wakeLock
+      wakeLock.addEventListener("release", () => {
+        if (this.wakeLock === wakeLock) this.wakeLock = null
+      }, { once: true })
+    } catch (_error) {
+      // Playback still works when the browser or operating system denies the wake lock.
+    } finally {
+      if (this.wakeLockRequest === request) this.wakeLockRequest = null
+    }
+  }
+
+  releaseWakeLock() {
+    this.wakeLockRequest = null
+
+    const wakeLock = this.wakeLock
+    this.wakeLock = null
+    if (!wakeLock) return
+
+    try {
+      wakeLock.release().catch(() => {
+        // The lock may already have been released by the browser.
+      })
+    } catch (_error) {
+      // The lock may already have been released by the browser.
+    }
   }
 
   persistState() {
