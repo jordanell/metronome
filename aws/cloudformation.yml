@@ -15,6 +15,7 @@ Parameters:
     Type: String
     Description: Issued ACM certificate for DomainName in us-east-1.
     AllowedPattern: "^arn:(aws|aws-us-gov|aws-cn):acm:us-east-1:[0-9]{12}:certificate/[0-9a-fA-F-]+$"
+
 Resources:
   SiteBucket:
     Type: AWS::S3::Bucket

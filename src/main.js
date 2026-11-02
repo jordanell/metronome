@@ -1,3 +1,9 @@
+/**
+ * Browser entry point for the metronome. The Metronome controller connects the
+ * page controls to Web Audio click scheduling, playback and elapsed-time display,
+ * screen wake lock handling, and settings saved in localStorage. Its data-action
+ * and data-metronome-target attributes provide the links to the page markup.
+ */
 import "./style.css"
 
 const STORAGE_KEY = "metronome.settings.v1"
@@ -14,6 +20,7 @@ const DEFAULTS = Object.freeze({
 })
 
 class Metronome {
+  // Names used to look up the controller's elements in the page markup.
   static targets = [
     "bpm", "status", "toggle", "toggleLabel", "transportIcon",
     "sessionTimer", "globalTimer", "quickButton", "numerator",
@@ -21,12 +28,14 @@ class Metronome {
     "desktopShortcut", "mobileTempoControls"
   ]
 
+  // Attach the controller to its root element and initialize its event handlers.
   constructor(element) {
     this.element = element
     this.connect()
     this.bindEvents()
   }
 
+  // Connect declared element actions and browser lifecycle events to methods.
   bindEvents() {
     this.element.querySelectorAll("[data-action]").forEach((element) => {
       const action = element.dataset.action
@@ -41,6 +50,7 @@ class Metronome {
     document.addEventListener("visibilitychange", () => this.handleVisibilityChange())
   }
 
+  // Restore settings, initialize playback state, and render the initial UI.
   connect() {
     const saved = this.loadState()
 
@@ -67,12 +77,14 @@ class Metronome {
     this.renderDeviceControls()
   }
 
+  // Stop playback and release the audio context when the controller is removed.
   disconnect() {
     this.finishPlayback()
     this.audioContext?.close()
     this.audioContext = null
   }
 
+  // Start or stop playback according to the current transport state.
   async toggle() {
     if (this.playing) {
       this.stop()
@@ -81,6 +93,7 @@ class Metronome {
     }
   }
 
+  // Resume audio and start click scheduling, timers, and periodic persistence.
   async start() {
     if (this.playing || this.starting) return
 
@@ -109,6 +122,7 @@ class Metronome {
     }
   }
 
+  // Capture elapsed time, cancel pending work, and save the stopped state.
   stop() {
     if (!this.playing) return
 
@@ -125,24 +139,29 @@ class Metronome {
     this.persistState()
   }
 
+  // Apply the BPM stored on a selected preset button.
   selectTempo(event) {
     this.setBpm(Number(event.currentTarget.dataset.bpm))
   }
 
+  // Decrease the tempo by one BPM within the supported range.
   decreaseTempo() {
     this.setBpm(this.bpm - 1)
   }
 
+  // Increase the tempo by one BPM within the supported range.
   increaseTempo() {
     this.setBpm(this.bpm + 1)
   }
 
+  // Read the volume control, update its label, and save the setting.
   changeVolume() {
     this.volume = this.clamp(Number(this.volumeTarget.value), 0, 100)
     this.volumeOutputTarget.textContent = `${this.volume}%`
     this.persistState()
   }
 
+  // Save the time signature and restart scheduling on a downbeat.
   changeSignature() {
     this.numerator = this.clamp(Number(this.numeratorTarget.value), 1, 12)
     this.denominator = Number(this.denominatorTarget.value)
@@ -151,6 +170,7 @@ class Metronome {
     this.rescheduleFromDownbeat()
   }
 
+  // Clear accumulated time and restart its clock if playback is active.
   resetGlobalTimer() {
     this.globalElapsedMs = 0
 
@@ -162,6 +182,7 @@ class Metronome {
     this.persistState()
   }
 
+  // Handle keyboard shortcuts for tempo changes and playback.
   handleKeydown(event) {
     if (event.key === "ArrowUp" || event.key === "ArrowDown") {
       event.preventDefault()
@@ -175,20 +196,24 @@ class Metronome {
     }
   }
 
+  // Save the latest elapsed time before the page unloads.
   persistBeforeUnload() {
     this.persistState()
   }
 
+  // Finish playback before the page is stored in a navigation cache.
   prepareForCache() {
     this.finishPlayback()
   }
 
+  // Reacquire the screen wake lock when an active page becomes visible.
   handleVisibilityChange() {
     if (this.playing && document.visibilityState === "visible") {
       this.requestWakeLock()
     }
   }
 
+  // Clamp and save a new tempo, update the UI, and reschedule active clicks.
   setBpm(value) {
     this.bpm = this.clamp(value, MIN_BPM, MAX_BPM)
     this.bpmTarget.textContent = this.bpm
@@ -200,6 +225,7 @@ class Metronome {
     this.rescheduleFromDownbeat()
   }
 
+  // Reflect the current tempo, volume, and time signature in the controls.
   renderSettings() {
     this.bpmTarget.textContent = this.bpm
     this.volumeTarget.value = this.volume
@@ -212,6 +238,7 @@ class Metronome {
     })
   }
 
+  // Reflect playback state in the transport button and status text.
   renderTransport() {
     this.element.classList.toggle("is-playing", this.playing)
     this.statusTarget.textContent = this.playing ? "Playing" : "Stopped"
@@ -220,6 +247,7 @@ class Metronome {
     this.transportIconTarget.textContent = this.playing ? "■" : "▶"
   }
 
+  // Show keyboard hints or touch tempo controls for the detected device.
   renderDeviceControls() {
     const mobileDevice = this.isMobileDevice()
 
@@ -229,6 +257,7 @@ class Metronome {
     this.mobileTempoControlsTarget.hidden = !mobileDevice
   }
 
+  // Detect mobile and touch-capable iPad devices for control layout.
   isMobileDevice() {
     if (navigator.userAgentData?.mobile) return true
 
@@ -238,6 +267,7 @@ class Metronome {
     return mobileUserAgent.test(navigator.userAgent) || iPadOSDesktopMode
   }
 
+  // Display current session time and cumulative elapsed time.
   renderTimers() {
     const now = performance.now()
     const session = this.playing ? now - this.sessionStartedAt : this.sessionElapsedMs
@@ -247,6 +277,7 @@ class Metronome {
     this.globalTimerTarget.textContent = this.formatDuration(global)
   }
 
+  // Refresh the visible timers on animation frames while playback continues.
   startTimerRendering() {
     const render = () => {
       if (!this.playing) return
@@ -258,6 +289,7 @@ class Metronome {
     render()
   }
 
+  // Create a Web Audio context on demand, or report unsupported browsers.
   ensureAudioContext() {
     if (this.audioContext) return
 
@@ -267,11 +299,13 @@ class Metronome {
     this.audioContext = new AudioContextClass()
   }
 
+  // Run the look-ahead click scheduler immediately and every 25 milliseconds.
   startScheduler() {
     this.scheduler()
     this.schedulerId = window.setInterval(() => this.scheduler(), 25)
   }
 
+  // Queue beats up to 100 milliseconds ahead of the audio clock.
   scheduler() {
     if (!this.playing || !this.audioContext) return
 
@@ -282,6 +316,7 @@ class Metronome {
     }
   }
 
+  // Schedule one short oscillator click, accenting the measure's first beat.
   scheduleClick(accented, time) {
     const oscillator = this.audioContext.createOscillator()
     const gain = this.audioContext.createGain()
@@ -300,6 +335,7 @@ class Metronome {
     oscillator.addEventListener("ended", () => this.scheduledNodes.delete(scheduled), { once: true })
   }
 
+  // Cancel queued beats and restart the active measure after a setting change.
   rescheduleFromDownbeat() {
     if (!this.playing || !this.audioContext) return
 
@@ -309,6 +345,7 @@ class Metronome {
     this.scheduler()
   }
 
+  // Stop any queued oscillator nodes and clear their tracking set.
   cancelScheduledNotes() {
     this.scheduledNodes.forEach(({ oscillator }) => {
       try {
@@ -320,6 +357,7 @@ class Metronome {
     this.scheduledNodes.clear()
   }
 
+  // Cancel the scheduler, state-saving interval, and timer animation frame.
   clearPlaybackLoops() {
     window.clearInterval(this.schedulerId)
     window.clearInterval(this.persistIntervalId)
@@ -329,6 +367,7 @@ class Metronome {
     this.animationFrameId = null
   }
 
+  // Finalize elapsed time and release playback resources during page exit.
   finishPlayback() {
     if (this.playing) {
       const now = performance.now()
@@ -343,6 +382,7 @@ class Metronome {
     this.persistState()
   }
 
+  // Keep the visible screen awake during playback when the browser allows it.
   async requestWakeLock() {
     if (!this.playing || document.visibilityState !== "visible") return
     if (!navigator.wakeLock?.request || this.wakeLock || this.wakeLockRequest) return
@@ -370,6 +410,7 @@ class Metronome {
     }
   }
 
+  // Release the current screen wake lock and invalidate any pending request.
   releaseWakeLock() {
     this.wakeLockRequest = null
 
@@ -386,6 +427,7 @@ class Metronome {
     }
   }
 
+  // Save settings and cumulative elapsed time, tolerating unavailable storage.
   persistState() {
     const elapsed = this.playing
       ? this.globalElapsedMs + performance.now() - this.globalStartedAt
@@ -404,6 +446,7 @@ class Metronome {
     }
   }
 
+  // Read saved settings and fill missing values from the defaults.
   loadState() {
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY))
@@ -413,11 +456,13 @@ class Metronome {
     }
   }
 
+  // Convert a value to a number and constrain it to the supplied bounds.
   clamp(value, minimum, maximum) {
     const numericValue = Number(value)
     return Math.min(maximum, Math.max(minimum, Number.isFinite(numericValue) ? numericValue : minimum))
   }
 
+  // Format nonnegative elapsed milliseconds as hours:minutes:seconds.
   formatDuration(milliseconds) {
     const totalSeconds = Math.floor(Math.max(0, milliseconds) / 1000)
     const hours = Math.floor(totalSeconds / 3600)
@@ -428,6 +473,7 @@ class Metronome {
   }
 }
 
+// Provide singular and plural element lookup getters for each declared target.
 for (const name of Metronome.targets) {
   Object.defineProperty(Metronome.prototype, `${name}Target`, {
     get() { return this.element.querySelector(`[data-metronome-target="${name}"]`) }
@@ -437,4 +483,5 @@ for (const name of Metronome.targets) {
   })
 }
 
+// Mount the controller on the metronome page element.
 new Metronome(document.querySelector('[data-controller="metronome"]'))
