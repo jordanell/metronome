@@ -1,0 +1,15 @@
+# Metronome
+
+> A free browser-based metronome for music practice.
+
+Canonical URL: __SITE_URL__/
+
+## Features
+
+- Adjustable tempo from 40 to 240 BPM
+- Configurable time signatures
+- Volume controls
+- Keyboard shortcuts for starting, stopping, and adjusting tempo
+- Session and total playing-time tracking
+
+The metronome runs directly in a modern web browser and requires JavaScript and Web Audio API support.

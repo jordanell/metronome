@@ -1,0 +1,17 @@
+{
+  "name": "metronome-static",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "predev": "node scripts/generate.mjs --dev",
+    "dev": "vite --host 127.0.0.1",
+    "prebuild": "node scripts/generate.mjs",
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "tailwindcss": "^4.3.3",
+    "vite": "^6.3.0"
+  }
+}

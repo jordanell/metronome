@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en" class="min-h-full bg-[#0e0e10] scheme-dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Free Online Metronome – Adjustable BPM & Time Signatures</title>
+  <meta name="description" content="Practice with a free online metronome featuring adjustable 40–240 BPM, time signatures, volume controls, keyboard shortcuts, and session tracking.">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <meta name="theme-color" content="#0e0e10">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="Metronome">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="canonical" href="__SITE_URL__/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Metronome">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:title" content="Free Online Metronome – Adjustable BPM & Time Signatures">
+  <meta property="og:description" content="Practice with a free online metronome featuring adjustable 40–240 BPM, time signatures, volume controls, keyboard shortcuts, and session tracking.">
+  <meta property="og:url" content="__SITE_URL__/">
+  <meta property="og:image" content="__SITE_URL__/social-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Metronome – a free online tempo and practice tool">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Free Online Metronome – Adjustable BPM & Time Signatures">
+  <meta name="twitter:description" content="Practice with a free online metronome featuring adjustable 40–240 BPM, time signatures, volume controls, keyboard shortcuts, and session tracking.">
+  <meta name="twitter:image" content="__SITE_URL__/social-card.png">
+  <meta name="twitter:image:alt" content="Metronome – a free online tempo and practice tool">
+  __VERIFICATION_TAGS__
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+  <link rel="icon" href="/icon-512.png" type="image/png" sizes="512x512">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Metronome","url":"__SITE_URL__/","description":"Practice with a free online metronome featuring adjustable 40–240 BPM, time signatures, volume controls, keyboard shortcuts, and session tracking.","image":"__SITE_URL__/social-card.png","applicationCategory":"MusicApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript and Web Audio API support","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"featureList":["Adjustable tempo from 40 to 240 BPM","Configurable time signatures","Volume controls","Keyboard shortcuts","Session and total playing-time tracking"]}</script>
+  <script type="module" src="/src/main.js"></script>
+</head>
+<body class="min-h-screen min-w-80 [background:radial-gradient(circle_at_15%_10%,rgba(111,77,255,0.17),transparent_32rem),radial-gradient(circle_at_90%_90%,rgba(233,255,112,0.09),transparent_28rem),#0e0e10] font-sans text-[#f7f4ed]">
+<main class="group grid min-h-screen place-items-center p-[clamp(1rem,4vw,3rem)] max-[620px]:p-0"
+      data-controller="metronome"
+>
+  <section class="w-full max-w-[760px] overflow-hidden rounded-[28px] border border-white/10 bg-[rgba(26,25,28,0.92)] p-[clamp(1.25rem,4vw,2.5rem)] shadow-[0_32px_100px_rgba(0,0,0,0.38)] backdrop-blur-[18px] max-[620px]:min-h-screen max-[620px]:rounded-none max-[620px]:border-0" aria-labelledby="metronome-title">
+    <header class="flex items-center justify-between gap-4">
+      <div>
+        <p class="mb-[0.35rem] text-xs font-[750] tracking-[0.16em] text-[#e9ff70] uppercase">Keep the pulse</p>
+        <h1 id="metronome-title" class="text-[clamp(1.65rem,5vw,2.35rem)] font-bold tracking-[-0.04em]">Metronome</h1>
+      </div>
+      <p class="m-0 rounded-full border border-white/10 px-3 py-[0.48rem] text-xs font-bold tracking-[0.08em] text-[#aaa69d] uppercase before:mr-[0.45rem] before:inline-block before:size-[0.45rem] before:rounded-full before:bg-current before:content-[''] group-[.is-playing]:text-[#e9ff70]" data-metronome-target="status" role="status" aria-live="polite">Stopped</p>
+    </header>
+
+    <section class="pt-[clamp(2rem,8vw,4.5rem)] pb-[clamp(1.5rem,5vw,2.5rem)] text-center" aria-labelledby="tempo-label">
+      <p id="tempo-label" class="mb-[0.35rem] text-xs font-[750] tracking-[0.16em] text-[#e9ff70] uppercase">Tempo</p>
+      <div class="flex items-center justify-center gap-[0.8rem] tabular-nums">
+        <output class="text-[clamp(5.5rem,22vw,10.5rem)] leading-[0.9] font-extrabold tracking-[-0.09em]" data-metronome-target="bpm" aria-label="Current tempo">120</output>
+        <span class="mb-[0.8rem] self-end text-xs font-[750] tracking-[0.14em] text-[#aaa69d]">BPM</span>
+      </div>
+      <p class="mt-4 text-xs text-[#aaa69d]" data-metronome-target="desktopShortcut"><kbd class="mx-[0.12rem] inline-block min-w-[1.6rem] rounded-[5px] border border-white/10 border-b-white/25 bg-[#29282d] px-[0.35rem] py-[0.15rem] text-center font-sans text-[0.7rem] text-[#f7f4ed]">↑</kbd><kbd class="mx-[0.12rem] inline-block min-w-[1.6rem] rounded-[5px] border border-white/10 border-b-white/25 bg-[#29282d] px-[0.35rem] py-[0.15rem] text-center font-sans text-[0.7rem] text-[#f7f4ed]">↓</kbd> adjust by one</p>
+      <div class="mt-4 flex justify-center gap-3" data-metronome-target="mobileTempoControls" hidden>
+        <button type="button"
+                class="grid size-12 cursor-pointer place-items-center rounded-lg border border-white/10 bg-[#2c2b30] text-2xl text-[#f7f4ed] active:translate-y-px focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff]"
+                data-action="metronome#decreaseTempo"
+                aria-label="Decrease tempo by 1 BPM">↓</button>
+        <button type="button"
+                class="grid size-12 cursor-pointer place-items-center rounded-lg border border-white/10 bg-[#2c2b30] text-2xl text-[#f7f4ed] active:translate-y-px focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff]"
+                data-action="metronome#increaseTempo"
+                aria-label="Increase tempo by 1 BPM">↑</button>
+      </div>
+    </section>
+
+    <section class="grid grid-cols-2 gap-3 max-[390px]:grid-cols-1" aria-label="Timers">
+      <div class="rounded-2xl border border-white/10 bg-[#222126] px-[1.15rem] py-4">
+        <div class="mb-[0.35rem] flex min-h-7 items-center">
+          <span class="block text-xs font-bold tracking-[0.08em] text-[#aaa69d] uppercase">Session</span>
+        </div>
+        <output class="text-[clamp(1.25rem,5vw,2rem)] font-[650] tracking-[0.04em] tabular-nums" data-metronome-target="sessionTimer" aria-label="Current session elapsed time">00:00:00</output>
+      </div>
+      <div class="rounded-2xl border border-white/10 bg-[#222126] px-[1.15rem] py-4">
+        <div class="mb-[0.35rem] flex min-h-7 items-center justify-between gap-2">
+          <span class="block text-xs font-bold tracking-[0.08em] text-[#aaa69d] uppercase">Global</span>
+          <button type="button"
+                  class="grid size-7 cursor-pointer place-items-center rounded-md text-[#aaa69d] transition-colors hover:bg-white/10 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#b9c8ff]"
+                  data-action="metronome#resetGlobalTimer"
+                  aria-label="Reset global timer"
+                  title="Reset global timer">
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
+          </button>
+        </div>
+        <output class="text-[clamp(1.25rem,5vw,2rem)] font-[650] tracking-[0.04em] tabular-nums" data-metronome-target="globalTimer" aria-label="Total elapsed playing time">00:00:00</output>
+      </div>
+    </section>
+
+    <button class="mt-4 flex min-h-[58px] w-full cursor-pointer items-center justify-center rounded-[15px] bg-[#e9ff70] text-base font-extrabold text-[#191a0e] transition-[transform,background] duration-120 hover:-translate-y-px hover:bg-[#f1ff9a] active:translate-y-px focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff] motion-reduce:transition-none group-[.is-playing]:bg-[#ff8d72] group-[.is-playing]:text-[#24100b]"
+            type="button"
+            data-metronome-target="toggle"
+            data-action="metronome#toggle"
+            aria-pressed="false">
+      <span class="mr-[0.35rem] inline-block w-[1.3rem] text-xs" aria-hidden="true" data-metronome-target="transportIcon">▶</span>
+      <span data-metronome-target="toggleLabel">Start</span>
+    </button>
+    <p class="mt-4 mb-7 text-center text-xs text-[#aaa69d]" data-metronome-target="desktopShortcut">Press <kbd class="mx-[0.12rem] inline-block min-w-[1.6rem] rounded-[5px] border border-white/10 border-b-white/25 bg-[#29282d] px-[0.35rem] py-[0.15rem] text-center font-sans text-[0.7rem] text-[#f7f4ed]">Space</kbd> or <kbd class="mx-[0.12rem] inline-block min-w-[1.6rem] rounded-[5px] border border-white/10 border-b-white/25 bg-[#29282d] px-[0.35rem] py-[0.15rem] text-center font-sans text-[0.7rem] text-[#f7f4ed]">Enter</kbd> to start and stop</p>
+
+    <section class="rounded-2xl border border-white/10 bg-[#222126] p-4" aria-labelledby="quick-tempo-label">
+      <div class="mb-[0.9rem] flex items-center justify-between">
+        <h2 id="quick-tempo-label" class="text-[0.92rem] font-bold">Quick tempo</h2>
+        <span class="text-xs text-[#aaa69d] tabular-nums">40–240</span>
+      </div>
+      <div class="grid grid-cols-7 gap-[0.4rem] max-[620px]:grid-cols-4">
+        <button type="button" class="min-h-[34px] cursor-pointer rounded-lg border border-white/10 bg-[#2c2b30] px-[0.2rem] py-[0.35rem] text-xs font-[650] text-[#aaa69d] tabular-nums hover:border-[#e9ff70]/45 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff] aria-pressed:border-[#e9ff70] aria-pressed:bg-[#e9ff70] aria-pressed:text-[#191a0e]" data-metronome-target="quickButton" data-action="metronome#selectTempo" data-bpm="40" aria-pressed="false">40</button>
+<button type="button" class="min-h-[34px] cursor-pointer rounded-lg border border-white/10 bg-[#2c2b30] px-[0.2rem] py-[0.35rem] text-xs font-[650] text-[#aaa69d] tabular-nums hover:border-[#e9ff70]/45 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff] aria-pressed:border-[#e9ff70] aria-pressed:bg-[#e9ff70] aria-pressed:text-[#191a0e]" data-metronome-target="quickButton" data-action="metronome#selectTempo" data-bpm="50" aria-pressed="false">50</button>
+<button type="button" class="min-h-[34px] cursor-pointer rounded-lg border border-white/10 bg-[#2c2b30] px-[0.2rem] py-[0.35rem] text-xs font-[650] text-[#aaa69d] tabular-nums hover:border-[#e9ff70]/45 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff] aria-pressed:border-[#e9ff70] aria-pressed:bg-[#e9ff70] aria-pressed:text-[#191a0e]" data-metronome-target="quickButton" data-action="metronome#selectTempo" data-bpm="60" aria-pressed="false">60</button>
+<button type="button" class="min-h-[34px] cursor-pointer rounded-lg border border-white/10 bg-[#2c2b30] px-[0.2rem] py-[0.35rem] text-xs font-[650] text-[#aaa69d] tabular-nums hover:border-[#e9ff70]/45 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff] aria-pressed:border-[#e9ff70] aria-pressed:bg-[#e9ff70] aria-pressed:text-[#191a0e]" data-metronome-target="quickButton" data-action="metronome#selectTempo" data-bpm="70" aria-pressed="false">70</button>
+<button type="button" class="min-h-[34px] cursor-pointer rounded-lg border border-white/10 bg-[#2c2b30] px-[0.2rem] py-[0.35rem] text-xs font-[650] text-[#aaa69d] tabular-nums hover:border-[#e9ff70]/45 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff] aria-pressed:border-[#e9ff70] aria-pressed:bg-[#e9ff70] aria-pressed:text-[#191a0e]" data-metronome-target="quickButton" data-action="metronome#selectTempo" data-bpm="80" aria-pressed="false">80</button>
+<button type="button" class="min-h-[34px] cursor-pointer rounded-lg border border-white/10 bg-[#2c2b30] px-[0.2rem] py-[0.35rem] text-xs font-[650] text-[#aaa69d] tabular-nums hover:border-[#e9ff70]/45 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff] aria-pressed:border-[#e9ff70] aria-pressed:bg-[#e9ff70] aria-pressed:text-[#191a0e]" data-metronome-target="quickButton" data-action="metronome#selectTempo" data-bpm="90" aria-pressed="false">90</button>
+<button type="button" class="min-h-[34px] cursor-pointer rounded-lg border border-white/10 bg-[#2c2b30] px-[0.2rem] py-[0.35rem] text-xs font-[650] text-[#aaa69d] tabular-nums hover:border-[#e9ff70]/45 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff] aria-pressed:border-[#e9ff70] aria-pressed:bg-[#e9ff70] aria-pressed:text-[#191a0e]" data-metronome-target="quickButton" data-action="metronome#selectTempo" data-bpm="100" aria-pressed="false">100</button>
+<button type="button" class="min-h-[34px] cursor-pointer rounded-lg border border-white/10 bg-[#2c2b30] px-[0.2rem] py-[0.35rem] text-xs font-[650] text-[#aaa69d] tabular-nums hover:border-[#e9ff70]/45 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff] aria-pressed:border-[#e9ff70] aria-pressed:bg-[#e9ff70] aria-pressed:text-[#191a0e]" data-metronome-target="quickButton" data-action="metronome#selectTempo" data-bpm="110" aria-pressed="false">110</button>
+<button type="button" class="min-h-[34px] cursor-pointer rounded-lg border border-white/10 bg-[#2c2b30] px-[0.2rem] py-[0.35rem] text-xs font-[650] text-[#aaa69d] tabular-nums hover:border-[#e9ff70]/45 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff] aria-pressed:border-[#e9ff70] aria-pressed:bg-[#e9ff70] aria-pressed:text-[#191a0e]" data-metronome-target="quickButton" data-action="metronome#selectTempo" data-bpm="120" aria-pressed="true">120</button>
+<button type="button" class="min-h-[34px] cursor-pointer rounded-lg border border-white/10 bg-[#2c2b30] px-[0.2rem] py-[0.35rem] text-xs font-[650] text-[#aaa69d] tabular-nums hover:border-[#e9ff70]/45 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff] aria-pressed:border-[#e9ff70] aria-pressed:bg-[#e9ff70] aria-pressed:text-[#191a0e]" data-metronome-target="quickButton" data-action="metronome#selectTempo" data-bpm="130" aria-pressed="false">130</button>
+<button type="button" class="min-h-[34px] cursor-pointer rounded-lg border border-white/10 bg-[#2c2b30] px-[0.2rem] py-[0.35rem] text-xs font-[650] text-[#aaa69d] tabular-nums hover:border-[#e9ff70]/45 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff] aria-pressed:border-[#e9ff70] aria-pressed:bg-[#e9ff70] aria-pressed:text-[#191a0e]" data-metronome-target="quickButton" data-action="metronome#selectTempo" data-bpm="140" aria-pressed="false">140</button>
+<button type="button" class="min-h-[34px] cursor-pointer rounded-lg border border-white/10 bg-[#2c2b30] px-[0.2rem] py-[0.35rem] text-xs font-[650] text-[#aaa69d] tabular-nums hover:border-[#e9ff70]/45 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff] aria-pressed:border-[#e9ff70] aria-pressed:bg-[#e9ff70] aria-pressed:text-[#191a0e]" data-metronome-target="quickButton" data-action="metronome#selectTempo" data-bpm="150" aria-pressed="false">150</button>
+<button type="button" class="min-h-[34px] cursor-pointer rounded-lg border border-white/10 bg-[#2c2b30] px-[0.2rem] py-[0.35rem] text-xs font-[650] text-[#aaa69d] tabular-nums hover:border-[#e9ff70]/45 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff] aria-pressed:border-[#e9ff70] aria-pressed:bg-[#e9ff70] aria-pressed:text-[#191a0e]" data-metronome-target="quickButton" data-action="metronome#selectTempo" data-bpm="160" aria-pressed="false">160</button>
+<button type="button" class="min-h-[34px] cursor-pointer rounded-lg border border-white/10 bg-[#2c2b30] px-[0.2rem] py-[0.35rem] text-xs font-[650] text-[#aaa69d] tabular-nums hover:border-[#e9ff70]/45 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff] aria-pressed:border-[#e9ff70] aria-pressed:bg-[#e9ff70] aria-pressed:text-[#191a0e]" data-metronome-target="quickButton" data-action="metronome#selectTempo" data-bpm="170" aria-pressed="false">170</button>
+<button type="button" class="min-h-[34px] cursor-pointer rounded-lg border border-white/10 bg-[#2c2b30] px-[0.2rem] py-[0.35rem] text-xs font-[650] text-[#aaa69d] tabular-nums hover:border-[#e9ff70]/45 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff] aria-pressed:border-[#e9ff70] aria-pressed:bg-[#e9ff70] aria-pressed:text-[#191a0e]" data-metronome-target="quickButton" data-action="metronome#selectTempo" data-bpm="180" aria-pressed="false">180</button>
+<button type="button" class="min-h-[34px] cursor-pointer rounded-lg border border-white/10 bg-[#2c2b30] px-[0.2rem] py-[0.35rem] text-xs font-[650] text-[#aaa69d] tabular-nums hover:border-[#e9ff70]/45 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff] aria-pressed:border-[#e9ff70] aria-pressed:bg-[#e9ff70] aria-pressed:text-[#191a0e]" data-metronome-target="quickButton" data-action="metronome#selectTempo" data-bpm="190" aria-pressed="false">190</button>
+<button type="button" class="min-h-[34px] cursor-pointer rounded-lg border border-white/10 bg-[#2c2b30] px-[0.2rem] py-[0.35rem] text-xs font-[650] text-[#aaa69d] tabular-nums hover:border-[#e9ff70]/45 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff] aria-pressed:border-[#e9ff70] aria-pressed:bg-[#e9ff70] aria-pressed:text-[#191a0e]" data-metronome-target="quickButton" data-action="metronome#selectTempo" data-bpm="200" aria-pressed="false">200</button>
+<button type="button" class="min-h-[34px] cursor-pointer rounded-lg border border-white/10 bg-[#2c2b30] px-[0.2rem] py-[0.35rem] text-xs font-[650] text-[#aaa69d] tabular-nums hover:border-[#e9ff70]/45 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff] aria-pressed:border-[#e9ff70] aria-pressed:bg-[#e9ff70] aria-pressed:text-[#191a0e]" data-metronome-target="quickButton" data-action="metronome#selectTempo" data-bpm="210" aria-pressed="false">210</button>
+<button type="button" class="min-h-[34px] cursor-pointer rounded-lg border border-white/10 bg-[#2c2b30] px-[0.2rem] py-[0.35rem] text-xs font-[650] text-[#aaa69d] tabular-nums hover:border-[#e9ff70]/45 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff] aria-pressed:border-[#e9ff70] aria-pressed:bg-[#e9ff70] aria-pressed:text-[#191a0e]" data-metronome-target="quickButton" data-action="metronome#selectTempo" data-bpm="220" aria-pressed="false">220</button>
+<button type="button" class="min-h-[34px] cursor-pointer rounded-lg border border-white/10 bg-[#2c2b30] px-[0.2rem] py-[0.35rem] text-xs font-[650] text-[#aaa69d] tabular-nums hover:border-[#e9ff70]/45 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff] aria-pressed:border-[#e9ff70] aria-pressed:bg-[#e9ff70] aria-pressed:text-[#191a0e]" data-metronome-target="quickButton" data-action="metronome#selectTempo" data-bpm="230" aria-pressed="false">230</button>
+<button type="button" class="min-h-[34px] cursor-pointer rounded-lg border border-white/10 bg-[#2c2b30] px-[0.2rem] py-[0.35rem] text-xs font-[650] text-[#aaa69d] tabular-nums hover:border-[#e9ff70]/45 hover:text-[#f7f4ed] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff] aria-pressed:border-[#e9ff70] aria-pressed:bg-[#e9ff70] aria-pressed:text-[#191a0e]" data-metronome-target="quickButton" data-action="metronome#selectTempo" data-bpm="240" aria-pressed="false">240</button>
+      </div>
+    </section>
+
+    <div class="mt-3 grid grid-cols-2 gap-3 max-[620px]:grid-cols-1">
+      <section class="rounded-2xl border border-white/10 bg-[#222126] p-4" aria-labelledby="signature-label">
+        <div class="mb-[0.9rem] flex items-center justify-between">
+          <h2 id="signature-label" class="text-[0.92rem] font-bold">Time signature</h2>
+          <output class="text-xs text-[#aaa69d] tabular-nums" data-metronome-target="signatureOutput" aria-live="polite">4/4</output>
+        </div>
+        <div class="flex items-center justify-center gap-3">
+          <div class="flex-1">
+            <label class="mb-[0.35rem] block text-[0.7rem] text-[#aaa69d]" for="signature-numerator">Beats</label>
+            <select id="signature-numerator"
+                    class="min-h-[42px] w-full rounded-[9px] border border-white/10 bg-[#2c2b30] px-3 text-[#f7f4ed] accent-[#e9ff70] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff]"
+                    data-metronome-target="numerator"
+                    data-action="metronome#changeSignature">
+              <option value="1">1</option>
+<option value="2">2</option>
+<option value="3">3</option>
+<option value="4" selected>4</option>
+<option value="5">5</option>
+<option value="6">6</option>
+<option value="7">7</option>
+<option value="8">8</option>
+<option value="9">9</option>
+<option value="10">10</option>
+<option value="11">11</option>
+<option value="12">12</option>
+            </select>
+          </div>
+          <span class="mt-4 text-2xl text-[#aaa69d]" aria-hidden="true">/</span>
+          <div class="flex-1">
+            <label class="mb-[0.35rem] block text-[0.7rem] text-[#aaa69d]" for="signature-denominator">Note</label>
+            <select id="signature-denominator"
+                    class="min-h-[42px] w-full rounded-[9px] border border-white/10 bg-[#2c2b30] px-3 text-[#f7f4ed] accent-[#e9ff70] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff]"
+                    data-metronome-target="denominator"
+                    data-action="metronome#changeSignature">
+              <option value="2">2</option>
+<option value="4" selected>4</option>
+<option value="8">8</option>
+<option value="16">16</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="rounded-2xl border border-white/10 bg-[#222126] p-4" aria-labelledby="volume-label">
+        <div class="mb-[0.9rem] flex items-center justify-between">
+          <h2 id="volume-label" class="text-[0.92rem] font-bold">Volume</h2>
+          <output class="text-xs text-[#aaa69d] tabular-nums" data-metronome-target="volumeOutput" for="volume-control">70%</output>
+        </div>
+        <div class="flex min-h-[66px] items-center gap-[0.65rem] text-[#aaa69d]">
+          <span aria-hidden="true">−</span>
+          <input id="volume-control"
+                 class="w-full cursor-pointer accent-[#e9ff70] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[#b9c8ff]"
+                 type="range"
+                 min="0"
+                 max="100"
+                 value="70"
+                 data-metronome-target="volume"
+                 data-action="input->metronome#changeVolume"
+                 aria-label="Metronome volume">
+          <span aria-hidden="true">+</span>
+        </div>
+      </section>
+    </div>
+  </section>
+</main>
+</body>
+</html>

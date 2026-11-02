@@ -1,180 +1,54 @@
 version: 2.1
 
 executors:
-  ruby:
+  node:
     docker:
-      - image: cimg/ruby:4.0.6
-    environment:
-      BUNDLE_PATH: vendor/bundle
-
-  ruby_with_postgres:
-    docker:
-      - image: cimg/ruby:4.0.6
-        environment:
-          RAILS_ENV: test
-          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/metronome_test
-      - image: postgres:17
-        environment:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: metronome_test
-    environment:
-      BUNDLE_PATH: vendor/bundle
-      RAILS_ENV: test
-      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/metronome_test
-
-  ruby_browser_with_postgres:
-    docker:
-      - image: cimg/ruby:4.0.6-browsers
-        environment:
-          RAILS_ENV: test
-          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/metronome_test
-      - image: postgres:17
-        environment:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: metronome_test
-    environment:
-      BUNDLE_PATH: vendor/bundle
-      RAILS_ENV: test
-      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/metronome_test
-
-commands:
-  install_dependencies:
-    steps:
-      - restore_cache:
-          keys:
-            - bundle-v1-{{ arch }}-{{ checksum ".ruby-version" }}-{{ checksum "Gemfile.lock" }}
-            - bundle-v1-{{ arch }}-{{ checksum ".ruby-version" }}-
-      - run:
-          name: Install gems
-          command: bundle check || bundle install --jobs 4 --retry 3
-      - save_cache:
-          key: bundle-v1-{{ arch }}-{{ checksum ".ruby-version" }}-{{ checksum "Gemfile.lock" }}
-          paths:
-            - vendor/bundle
-
-  install_system_packages:
-    steps:
-      - run:
-          name: Install system packages
-          command: sudo apt-get update && sudo apt-get install --no-install-recommends -y libpq-dev libvips
-
-  wait_for_postgres:
-    steps:
-      - run:
-          name: Wait for PostgreSQL
-          command: dockerize -wait tcp://127.0.0.1:5432 -timeout 60s
+      - image: cimg/node:22.20.0
+    working_directory: ~/project
 
 jobs:
-  scan_ruby:
-    executor: ruby
+  build:
+    executor: node
     steps:
       - checkout
-      - install_dependencies
       - run:
-          name: Scan Rails code
-          command: bin/brakeman --no-pager
+          name: Install dependencies
+          command: npm ci
       - run:
-          name: Audit Ruby gems
-          command: bin/bundler-audit
-
-  scan_javascript:
-    executor: ruby
-    steps:
-      - checkout
-      - install_dependencies
-      - run:
-          name: Audit import-map dependencies
-          command: bin/importmap audit
-
-  lint:
-    executor: ruby
-    environment:
-      RUBOCOP_CACHE_ROOT: tmp/rubocop
-    steps:
-      - checkout
-      - install_dependencies
-      - restore_cache:
-          keys:
-            - rubocop-v1-{{ arch }}-{{ checksum ".ruby-version" }}-{{ checksum ".rubocop.yml" }}
-            - rubocop-v1-{{ arch }}-
-      - run:
-          name: Lint Ruby
-          command: bin/rubocop
-      - save_cache:
-          key: rubocop-v1-{{ arch }}-{{ checksum ".ruby-version" }}-{{ checksum ".rubocop.yml" }}
+          name: Build static site
+          command: npm run build
+      - persist_to_workspace:
+          root: .
           paths:
-            - tmp/rubocop
-
-  test:
-    executor: ruby_with_postgres
-    steps:
-      - checkout
-      - install_system_packages
-      - install_dependencies
-      - wait_for_postgres
-      - run:
-          name: Prepare database and run non-system specs
-          command: bin/rails db:prepare && bundle exec rspec --exclude-pattern "spec/system/**/*_spec.rb"
-
-  system_test:
-    executor: ruby_browser_with_postgres
-    steps:
-      - checkout
-      - install_system_packages
-      - install_dependencies
-      - wait_for_postgres
-      - run:
-          name: Prepare database and run system specs
-          command: bin/rails db:prepare && bundle exec rspec spec/system
-      - store_artifacts:
-          path: tmp/screenshots
-          destination: screenshots
+            - dist
 
   deploy:
     docker:
       - image: cimg/aws:2026.07.1
-    environment:
-      # Replace these values with the EcsClusterName and EcsServiceName
-      # CloudFormation outputs after the stack has been deployed.
-      ECS_CLUSTER: click-track-prod-cluster
-      ECS_SERVICE: click-track-prod-application
+    working_directory: ~/project
     steps:
-      - checkout
-      - setup_remote_docker
+      - attach_workspace:
+          at: .
       - run:
-          name: Build and push image to ECR
-          command: make push
-      - run:
-          name: Restart ECS tasks with the new image
+          name: Upload static site and invalidate CloudFront
           command: |
-            aws ecs update-service \
-              --region ca-central-1 \
-              --cluster "${ECS_CLUSTER}" \
-              --service "${ECS_SERVICE}" \
-              --force-new-deployment
-
-            aws ecs wait services-stable \
-              --region ca-central-1 \
-              --cluster "${ECS_CLUSTER}" \
-              --services "${ECS_SERVICE}"
+            set -eu
+            bucket=$(aws cloudformation describe-stacks --region "$AWS_REGION" --stack-name "$STATIC_STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='SiteBucketName'].OutputValue" --output text)
+            distribution=$(aws cloudformation describe-stacks --region "$AWS_REGION" --stack-name "$STATIC_STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='DistributionId'].OutputValue" --output text)
+            : "${bucket:?Missing SiteBucketName output}"
+            : "${distribution:?Missing DistributionId output}"
+            aws s3 sync dist/assets/ "s3://$bucket/assets/" --region "$AWS_REGION" --cache-control "public,max-age=31536000,immutable"
+            aws s3 sync dist/ "s3://$bucket/" --region "$AWS_REGION" --delete --exclude "assets/*" --cache-control "public,max-age=300"
+            aws s3 cp dist/index.html "s3://$bucket/index.html" --region "$AWS_REGION" --content-type "text/html; charset=utf-8" --cache-control "no-cache"
+            aws cloudfront create-invalidation --distribution-id "$distribution" --paths '/*'
 
 workflows:
-  build_and_test:
+  build_and_deploy:
     jobs:
-      - scan_ruby
-      - scan_javascript
-      - lint
-      - test
-      - system_test
+      - build
       - deploy:
           requires:
-            - scan_ruby
-            - scan_javascript
-            - lint
-            - test
-            - system_test
+            - build
           filters:
             branches:
               only: main
